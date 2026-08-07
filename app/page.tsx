@@ -1,5 +1,6 @@
 import CodeSubmitForm from "@/components/CodeSubmitForm";
 import { SignInButton, Show, UserButton } from "@clerk/nextjs";
+import Link from "next/link";
 
 export default function Home() {
   return (
@@ -13,7 +14,7 @@ export default function Home() {
         </div>
         
         {/* Clerk Authentication UI */}
-        <div className="ml-4">
+        <div className="ml-4 flex items-center gap-4">
           <Show when="signed-out">
             <SignInButton mode="modal">
               <button className="bg-gray-800 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded border border-gray-600 transition-colors">
@@ -22,6 +23,9 @@ export default function Home() {
             </SignInButton>
           </Show>
           <Show when="signed-in">
+            <Link href="/dashboard" className="text-gray-300 hover:text-white font-semibold mr-4">
+              Dashboard
+            </Link>
             <UserButton appearance={{ elements: { avatarBox: "w-10 h-10" } }} />
           </Show>
         </div>
