@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
 import Link from "next/link";
+import DeleteScanButton from "@/components/DeleteScanButton";
 
 export default async function Dashboard() {
   // 1. Verify user authentication
@@ -41,22 +42,27 @@ export default async function Dashboard() {
           {scans.map((scan) => (
             <div key={scan.id} className="bg-gray-800 p-6 rounded border border-gray-700">
               <div className="flex justify-between items-center mb-4">
-                <span className="text-sm text-gray-400">
-                  {new Date(scan.createdAt).toLocaleString()}
-                </span>
-                <span className={`text-sm font-bold px-3 py-1 rounded border ${
-                  (scan.report?.vulnerabilityCount ?? 0) > 0 
-                    ? 'bg-red-900/50 border-red-900 text-red-200' 
-                    : 'bg-green-900/50 border-green-900 text-green-200'
-                }`}>
-                  Vulnerabilities: {scan.report?.vulnerabilityCount || 0}
-                </span>
+                <div className="flex items-center gap-4">
+                  <span className="text-sm text-gray-400">
+                    {new Date(scan.createdAt).toLocaleString()}
+                  </span>
+                  <span className={`text-sm font-bold px-3 py-1 rounded border ${
+                    (scan.report?.vulnerabilityCount ?? 0) > 0 
+                      ? 'bg-red-900/50 border-red-900 text-red-200' 
+                      : 'bg-green-900/50 border-green-900 text-green-200'
+                  }`}>
+                    Vulnerabilities: {scan.report?.vulnerabilityCount || 0}
+                  </span>
+                </div>
+                
+                {/* Insert the Delete Button here, passing the scan ID */}
+                <DeleteScanButton scanId={scan.id} />
+                
               </div>
               
               <div className="mb-2 text-sm text-gray-400">Original Code Snippet:</div>
               <div className="bg-gray-900 p-4 rounded overflow-x-auto border border-gray-700">
                 <pre className="text-sm text-gray-300 font-mono">
-                  {/* Truncate the code snippet if it is too long */}
                   {scan.originalCode.substring(0, 150)}
                   {scan.originalCode.length > 150 ? "...\n[Code truncated for preview]" : ""}
                 </pre>
