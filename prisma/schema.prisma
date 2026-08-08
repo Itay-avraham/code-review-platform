@@ -22,9 +22,11 @@ model Scan {
   id           String   @id @default(uuid())
   userId       String
   originalCode String
+  title        String?  
+  isStarred    Boolean  @default(false) 
   createdAt    DateTime @default(now())
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   report       Report?
+  user         User     @relation(fields: [userId], references: [id])
 }
 
 model Report {

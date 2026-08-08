@@ -1,51 +1,88 @@
 import { NextResponse } from "next/server";
-import { auth, currentUser } from "@clerk/nextjs/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { auth } from "@clerk/nextjs/server";
+import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 import prisma from "@/lib/prisma";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
+// Define the exact schema the AI must adhere to
+const aiSchema = {
+  type: SchemaType.OBJECT,
+  properties: {
+    vulnerabilities: {
+      type: SchemaType.ARRAY,
+      items: {
+        type: SchemaType.OBJECT,
+        properties: {
+          issue: { type: SchemaType.STRING },
+          severity: { type: SchemaType.STRING },
+          description: { type: SchemaType.STRING },
+        },
+        required: ["issue", "severity", "description"],
+      },
+    },
+    quality: {
+      type: SchemaType.ARRAY,
+      items: {
+        type: SchemaType.OBJECT,
+        properties: {
+          issue: { type: SchemaType.STRING },
+          suggestion: { type: SchemaType.STRING },
+        },
+        required: ["issue", "suggestion"],
+      },
+    },
+  },
+  required: ["vulnerabilities", "quality"],
+};
+
 export async function POST(req: Request) {
   try {
-    // 1. Authenticate user
+    // 1. Route Protection (Authentication)
     const { userId } = await auth();
-    const user = await currentUser();
-
-    if (!userId || !user) {
+    if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const email = user.emailAddresses[0]?.emailAddress;
-    if (!email) {
-      return NextResponse.json({ error: "User email not found" }, { status: 400 });
+    const body = await req.json();
+    const { codeSnippet } = body;
+
+    // 2. Strict Input Validation
+    if (!codeSnippet || typeof codeSnippet !== "string") {
+      return NextResponse.json(
+        { error: "Invalid request. Code snippet must be a string." },
+        { status: 400 }
+      );
     }
 
-    const { codeSnippet } = await req.json();
-    if (!codeSnippet) {
-      return NextResponse.json({ error: "Code snippet is required" }, { status: 400 });
+    if (codeSnippet.trim().length === 0) {
+      return NextResponse.json(
+        { error: "Code snippet cannot be empty." },
+        { status: 400 }
+      );
     }
 
-    // 2. Ensure user exists in Supabase
-    await prisma.user.upsert({
-      where: { id: userId },
-      update: { email },
-      create: { id: userId, email },
-    });
+    const MAX_CHARS = 8000;
+    if (codeSnippet.length > MAX_CHARS) {
+      return NextResponse.json(
+        { error: `Code snippet exceeds the maximum limit of ${MAX_CHARS} characters.` },
+        { status: 400 }
+      );
+    }
 
-    // 3. Generate AI Analysis
-    const model = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
-    const prompt = `
-      Analyze the following code snippet for security vulnerabilities and clean code principles.
-      You must respond ONLY with a valid JSON object. Do not include markdown formatting like \`\`\`json.
-      Use this exact JSON structure:
-      {
-        "vulnerabilities": [
-          { "issue": "string", "severity": "High|Medium|Low", "description": "string" }
-        ],
-        "quality": [
-          { "issue": "string", "suggestion": "string" }
-        ]
+    // 3. Generate AI Analysis using 3.6 Flash and Strict Schema
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-3.6-flash",
+      generationConfig: { 
+        responseMimeType: "application/json",
+        responseSchema: aiSchema as any,
       }
+    });
+    
+    const prompt = `
+      You are an expert static application security testing (SAST) tool and senior code auditor.
+      Aggressively analyze the provided code for security vulnerabilities and clean code violations.
+      You MUST report issues like SQL Injection, XSS, or insecure configurations if they exist.
 
       Code to analyze:
       ${codeSnippet}
@@ -53,8 +90,15 @@ export async function POST(req: Request) {
 
     const result = await model.generateContent(prompt);
     const responseText = result.response.text();
-    const cleanJson = responseText.replace(/```json/gi, "").replace(/```/gi, "").trim();
-    const parsedData = JSON.parse(cleanJson);
+    
+    let parsedData;
+    try {
+      const cleanJson = responseText.replace(/```json/gi, "").replace(/```/gi, "").trim();
+      parsedData = JSON.parse(cleanJson);
+    } catch (parseError) {
+      console.error("Failed to parse AI response:", responseText);
+      return NextResponse.json({ error: "The AI failed to generate a valid analysis for this snippet." }, { status: 500 });
+    }
 
     // 4. Save Scan & Report to Supabase via Prisma
     const scan = await prisma.scan.create({
