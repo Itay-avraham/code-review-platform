@@ -37,6 +37,7 @@ export default function CodeSubmitForm() {
           placeholder="Paste your code snippet here..."
           className="w-full h-64 p-4 bg-gray-900 text-white rounded border border-gray-700 focus:border-blue-500 focus:outline-none font-mono"
           required
+          maxLength={8000} 
         />
         <button
           type="submit"
