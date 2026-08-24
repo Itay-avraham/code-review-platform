@@ -1,14 +1,22 @@
 "use client";
 
 import { useState } from "react";
+import { useAuth, SignInButton } from "@clerk/nextjs";
 
 export default function CodeSubmitForm() {
   const [code, setCode] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState<any>(null);
+  
+  // NEW: Pull the authentication state directly from Clerk
+  const { isSignedIn } = useAuth(); 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Failsafe: Abort execution if they somehow bypass the UI
+    if (!isSignedIn) return; 
+
     setIsSubmitting(true);
     setResult(null);
     
@@ -39,13 +47,27 @@ export default function CodeSubmitForm() {
           required
           maxLength={8000} 
         />
-        <button
-          type="submit"
-          disabled={isSubmitting || !code.trim()}
-          className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50"
-        >
-          {isSubmitting ? "Analyzing..." : "Analyze Code"}
-        </button>
+        
+        {/* NEW: Conditional Button Rendering */}
+        {isSignedIn ? (
+          <button
+            type="submit"
+            disabled={isSubmitting || !code.trim()}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50"
+          >
+            {isSubmitting ? "Analyzing..." : "Analyze Code"}
+          </button>
+        ) : (
+          <SignInButton mode="modal">
+            <button
+              type="button" 
+              disabled={!code.trim()}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50"
+            >
+              Sign in to Analyze
+            </button>
+          </SignInButton>
+        )}
       </form>
 
       {result && result.data && (
