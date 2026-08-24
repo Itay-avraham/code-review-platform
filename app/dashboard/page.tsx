@@ -24,13 +24,13 @@ export default async function Dashboard() {
     orderBy: { createdAt: "desc" },
   });
 
-  const pinnedScans = scans.filter(scan => scan.isStarred);
-  const recentScans = scans.filter(scan => !scan.isStarred);
+  const pinnedScans = scans.filter((scan: any) => scan.isStarred);
+  const recentScans = scans.filter((scan: any) => !scan.isStarred);
 
   // Helper function to render cards so we don't duplicate code
   const renderScans = (scanList: typeof scans) => (
     <div className="flex flex-col gap-8">
-      {scanList.map((scan) => {
+      {scanList.map((scan: any) => {
         const analysis = scan.report?.analysisData as AnalysisData | null;
 
         return (
@@ -61,8 +61,6 @@ export default async function Dashboard() {
                 <DeleteScanButton scanId={scan.id} />
               </div>
             </div>
-            
-            <div className="mb-2 text-sm font-bold text-gray-300">Original Code Snippet:</div>
             
             <div className="mb-2 text-sm font-bold text-gray-300">Original Code Snippet:</div>
             <CodeSnippetViewer code={scan.originalCode} />
