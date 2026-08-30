@@ -5,6 +5,7 @@ import Link from "next/link";
 import DeleteScanButton from "@/components/DeleteScanButton";
 import ScanControls from "@/components/ScanControls";
 import CodeSnippetViewer from "@/components/CodeSnippetViewer";
+import LocalTime from "@/components/LocalTime";
 
 type AnalysisData = {
   vulnerabilities?: { issue: string; severity: string; description: string }[];
@@ -45,9 +46,7 @@ export default async function Dashboard() {
 
             <div className="flex justify-between items-center mb-6">
               <div className="flex items-center gap-4">
-                <span className="text-sm text-gray-400">
-                  {new Date(scan.createdAt).toLocaleString()}
-                </span>
+                <LocalTime date={scan.createdAt} />
                 <span className={`text-sm font-bold px-3 py-1 rounded border ${
                   (scan.report?.vulnerabilityCount ?? 0) > 0 
                     ? 'bg-red-900/50 border-red-900 text-red-200' 
