@@ -8,17 +8,21 @@ export default function CodeSubmitForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState<any>(null);
   
-  // NEW: Pull the authentication state directly from Clerk
+  // 1. Introduce the error state
+  const [error, setError] = useState<string | null>(null); 
+  
   const { isSignedIn } = useAuth(); 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Failsafe: Abort execution if they somehow bypass the UI
     if (!isSignedIn) return; 
 
     setIsSubmitting(true);
     setResult(null);
+    
+    // 2. Reset the error state on new submissions
+    setError(null); 
     
     try {
       const response = await fetch("/api/analyze", {
@@ -27,10 +31,17 @@ export default function CodeSubmitForm() {
         body: JSON.stringify({ codeSnippet: code }),
       });
 
+      // 3. Catch non-200 HTTP responses before attempting to parse JSON
+      if (!response.ok) {
+        throw new Error(`Analysis failed with status: ${response.status}`);
+      }
+
       const data = await response.json();
       setResult(data);
-    } catch (error) {
-      console.error("Error submitting code:", error);
+    } catch (err: any) {
+      console.error("Error submitting code:", err);
+      // 4. Update the error state with a message for the UI
+      setError(err.message || "An unexpected error occurred while analyzing the code.");
     } finally {
       setIsSubmitting(false);
     }
@@ -48,7 +59,13 @@ export default function CodeSubmitForm() {
           maxLength={8000} 
         />
         
-        {/* NEW: Conditional Button Rendering */}
+        {/* 5. Conditionally render the error message */}
+        {error && (
+          <div className="bg-red-900/50 border border-red-900 text-red-200 px-4 py-3 rounded text-sm font-semibold">
+            {error}
+          </div>
+        )}
+        
         {isSignedIn ? (
           <button
             type="submit"
@@ -73,7 +90,6 @@ export default function CodeSubmitForm() {
       {result && result.data && (
         <div className="flex flex-col gap-6">
           
-          {/* Vulnerabilities Section */}
           <div className="bg-gray-800 p-6 rounded border border-gray-700">
             <h3 className="text-xl font-bold mb-4 text-red-400">Security Vulnerabilities</h3>
             {result.data.vulnerabilities?.length === 0 ? (
@@ -99,7 +115,6 @@ export default function CodeSubmitForm() {
             )}
           </div>
 
-          {/* Quality Section */}
           <div className="bg-gray-800 p-6 rounded border border-gray-700">
             <h3 className="text-xl font-bold mb-4 text-green-400">Code Quality Suggestions</h3>
             {result.data.quality?.length === 0 ? (
