@@ -109,7 +109,7 @@ export async function POST(req: Request) {
 
     // 4. Generate AI Analysis using 3.6 Flash and Strict Schema
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-2.5-flash", // change to gemini-3.6-flash or gemini-2.5-flash
+      model: "gemini-3.6-flash",
       generationConfig: { 
         responseMimeType: "application/json",
         responseSchema: aiSchema as any,
