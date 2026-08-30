@@ -1,7 +1,7 @@
 export const maxDuration = 60;
 
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server"; // Import currentUser
 import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 import prisma from "@/lib/prisma";
 
@@ -45,6 +45,18 @@ export async function POST(req: Request) {
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Dynamically sync the Clerk user to your Prisma database
+    const user = await currentUser();
+    const email = user?.emailAddresses[0]?.emailAddress || `${userId}@placeholder.com`;
+    await prisma.user.upsert({
+      where: { id: userId },
+      update: {},
+      create: {
+        id: userId,
+        email: email,
+      },
+    });
 
     const body = await req.json();
     const { codeSnippet, isTest } = body;
