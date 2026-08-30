@@ -7,8 +7,6 @@ export default function CodeSubmitForm() {
   const [code, setCode] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState<any>(null);
-  
-  // 1. Introduce the error state
   const [error, setError] = useState<string | null>(null); 
   
   const { isSignedIn } = useAuth(); 
@@ -20,8 +18,6 @@ export default function CodeSubmitForm() {
 
     setIsSubmitting(true);
     setResult(null);
-    
-    // 2. Reset the error state on new submissions
     setError(null); 
     
     try {
@@ -31,7 +27,6 @@ export default function CodeSubmitForm() {
         body: JSON.stringify({ codeSnippet: code }),
       });
 
-      // 3. Catch non-200 HTTP responses before attempting to parse JSON
       if (!response.ok) {
         throw new Error(`Analysis failed with status: ${response.status}`);
       }
@@ -40,7 +35,6 @@ export default function CodeSubmitForm() {
       setResult(data);
     } catch (err: any) {
       console.error("Error submitting code:", err);
-      // 4. Update the error state with a message for the UI
       setError(err.message || "An unexpected error occurred while analyzing the code.");
     } finally {
       setIsSubmitting(false);
@@ -59,7 +53,6 @@ export default function CodeSubmitForm() {
           maxLength={8000} 
         />
         
-        {/* 5. Conditionally render the error message */}
         {error && (
           <div className="bg-red-900/50 border border-red-900 text-red-200 px-4 py-3 rounded text-sm font-semibold">
             {error}
@@ -70,9 +63,20 @@ export default function CodeSubmitForm() {
           <button
             type="submit"
             disabled={isSubmitting || !code.trim()}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50"
+            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            {isSubmitting ? "Analyzing..." : "Analyze Code"}
+            {isSubmitting ? (
+              <>
+                <span>Analyzing</span>
+                <span className="flex gap-1">
+                  <span className="animate-bounce">•</span>
+                  <span className="animate-bounce [animation-delay:0.2s]">•</span>
+                  <span className="animate-bounce [animation-delay:0.4s]">•</span>
+                </span>
+              </>
+            ) : (
+              "Analyze Code"
+            )}
           </button>
         ) : (
           <SignInButton mode="modal">
@@ -89,7 +93,6 @@ export default function CodeSubmitForm() {
 
       {result && result.data && (
         <div className="flex flex-col gap-6">
-          
           <div className="bg-gray-800 p-6 rounded border border-gray-700">
             <h3 className="text-xl font-bold mb-4 text-red-400">Security Vulnerabilities</h3>
             {result.data.vulnerabilities?.length === 0 ? (
@@ -130,7 +133,6 @@ export default function CodeSubmitForm() {
               </ul>
             )}
           </div>
-          
         </div>
       )}
     </div>
