@@ -118,7 +118,7 @@ export async function POST(req: Request) {
           responseSchema: aiSchema as any,
           temperature: 0,
           thinkingConfig: {
-            thinkingBudget: 0
+            thinkingLevel: "minimal"
           }
         } as any 
       });
