@@ -12,7 +12,7 @@ test.describe('Unauthenticated Landing Page', () => {
 
     // Verify the presence of your Clerk sign-in button
     // (Adjust the text string if your button says "Log In" or "Get Started")
-    const signInButton = page.locator('text=Sign In');
+    const signInButton = page.getByRole('button', { name: 'Sign In', exact: true });
     await expect(signInButton).toBeVisible();
   });
 

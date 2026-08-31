@@ -24,15 +24,14 @@ test.describe('Authenticated Dashboard & Core Processes', () => {
   });
 
   test('should analyze code and save to history (Main Feature & Database)', async ({ page }) => {
-    // Intercept the analyze API call so it never actually hits Google's servers
+    // Allow the request to hit the real backend, but inject isTest: true 
+    // to bypass the LLM and force a clean database write.
     await page.route('**/api/analyze', async route => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          vulnerabilities: [{ title: "SQL Injection Test", severity: "High", description: "Mocked vulnerability for testing." }],
-          suggestions: [{ title: "Clean Code", description: "Mocked suggestion." }]
-        })
+      const request = route.request();
+      const postData = JSON.parse(request.postData() || '{}');
+      postData.isTest = true;
+      await route.continue({
+        postData: JSON.stringify(postData)
       });
     });
 
@@ -43,11 +42,21 @@ test.describe('Authenticated Dashboard & Core Processes', () => {
     await codeInput.fill('const x = "SQL Injection Test";');
 
     const analyzeButton = page.locator('button', { hasText: 'Analyze Code' });
+    
+    // Wait for the backend write to complete before navigating
+    const responsePromise = page.waitForResponse(res => res.url().includes('/api/analyze'));
     await analyzeButton.click();
+    await responsePromise;
 
-    // Verify it navigates or updates based on the mocked response
-    await page.waitForTimeout(2000);
     await page.goto('/dashboard');
+    await expect(page.locator('text=SQL Injection').first()).toBeVisible();
+   
+    // Expand the code viewer if collapsed to reveal the snippet text
+    const expandButton = page.locator('button:has-text("Code"), button.expand-code, [aria-label*="expand" i]').first();
+    if (await expandButton.isVisible()) {
+      await expandButton.click();
+    }
+
     const originalCodeSnippet = page.locator('text=const x = "SQL Injection Test";').first();
     await expect(originalCodeSnippet).toBeVisible();
   });
