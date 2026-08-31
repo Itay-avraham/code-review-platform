@@ -146,7 +146,7 @@ export async function POST(req: Request) {
 
       const completion = await groq.chat.completions.create({
         messages: [{ role: "user", content: groqPrompt }],
-        model: "llama3-8b-8192", 
+        model: "openai/gpt-oss-20b", 
         temperature: 0,
         response_format: { type: "json_object" }, 
       });
